@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/Legion/dualout/build/cmake_install.cmake",
+		"C:/Users/Legion/dualout/build/dualout-core/cmake_install.cmake",
+		"C:/Users/Legion/dualout/build/dualout-video/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,3 @@
+cmd=set_devices a="Realtek(R) Audio" b="AirPods Pro (Adik)" sr=48000 ch=2 bps=16
+cmd=open url="C:\Adik\4_5797400500282327604.mp4"
+cmd=play

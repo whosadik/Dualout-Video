@@ -1,0 +1,10 @@
+^C:\USERS\LEGION\DUALOUT\DUALOUT-CORE\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Legion/dualout -BC:/Users/Legion/dualout/build --check-stamp-file C:/Users/Legion/dualout/build/dualout-core/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

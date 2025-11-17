@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Legion\dualout\build\CMakeFiles\646b30bfa4b641e6297a60d4f7f46dc8\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{017DF77B-C53F-3456-AFFE-BBDAC0060486}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

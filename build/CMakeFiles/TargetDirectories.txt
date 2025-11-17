@@ -1,0 +1,4 @@
+C:/Users/Legion/dualout/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Legion/dualout/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/Legion/dualout/build/dualout-core/CMakeFiles/dualout-core.dir
+C:/Users/Legion/dualout/build/dualout-video/CMakeFiles/dualout-video.dir

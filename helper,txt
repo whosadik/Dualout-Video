@@ -1,0 +1,9 @@
+cd C:\Users\Legion\dualout
+cmake --build build --config Release
+
+
+.\build\dualout-video\Release\dualout-video.exe
+
+cmd=set_devices a="Realtek(R) Audio" b="AirPods Pro (Adik)" ch=2 bps=16
+cmd=open url="C:\Adik\4_5797400500282327604.mp4"
+cmd=play
