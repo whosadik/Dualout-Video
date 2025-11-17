@@ -102,6 +102,15 @@ int main(){
             long long ms = kv.count("ms")? std::stoll(kv["ms"]) : 0;
             std::cout << (player.seek_ms(ms)? R"({"ok":true})" : R"({"ok":false})") << "\n";
         }
+        else if (cmd == "set_volume") {
+            // a_db / b_db оставляем на будущее, пока можно всегда 0
+            float aDb    = kv.count("a_db")    ? std::stof(kv["a_db"])    : 0.0f;
+            float bDb    = kv.count("b_db")    ? std::stof(kv["b_db"])    : 0.0f;
+            float master = kv.count("master")  ? std::stof(kv["master"])  : 1.0f;
+
+            bridge.eng.setGainDb(aDb, bDb, master);
+            std::cout << R"({"ok":true})" << "\n";
+        }
         // НОВОЕ: тестовый тон
         else if(cmd=="test_tone"){
             int durMs = kv.count("ms") ? std::stoi(kv["ms"]) : 3000;   // длительность, по умолчанию 3 сек

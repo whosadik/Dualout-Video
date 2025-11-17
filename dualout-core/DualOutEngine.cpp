@@ -9,7 +9,8 @@
 #include <chrono>
 #include <string>
 #include <windows.h>
-
+#include <cmath>
+#include <algorithm>
 // маленький helper для конвертации std::wstring -> UTF-8
 static std::string utf8_from_wide(const std::wstring& ws){
     if(ws.empty()) return {};
@@ -49,7 +50,13 @@ struct DualOutEngineImpl {
     uint64_t dropB{0};
     std::atomic_bool loggedCallbackA{false};
     std::atomic_bool loggedCallbackB{false};
+
+    // НОВОЕ: коэффициенты громкости
+    float gainA      = 1.0f;
+    float gainB      = 1.0f;
+    float masterGain = 1.0f;
 } g;
+
 
 static void dev_callback(ma_device* d, void* out, const void*, ma_uint32 frameCount)
 {
@@ -88,12 +95,28 @@ static void dev_callback(ma_device* d, void* out, const void*, ma_uint32 frameCo
         totalRead += capFrames;
     }
 
-    // Если кадров не хватило — добиваем тишиной
+        // Если кадров не хватило — добиваем тишиной
     if (totalRead < needFrames) {
         ma_uint32 missing = needFrames - totalRead;
         std::memset(outBytes + totalRead * bpf, 0, missing * bpf);
     }
+
+    // НОВОЕ: применяем громкость (на выходе, отдельно для A и B)
+    float devGain   = isA ? g.gainA : g.gainB;
+    float totalGain = devGain * g.masterGain;
+
+    if (std::fabs(totalGain - 1.0f) > 0.0001f) {
+        int16_t* samples = reinterpret_cast<int16_t*>(outBytes);
+        const size_t sampleCount = static_cast<size_t>(needFrames) * g.ch;
+        for (size_t i = 0; i < sampleCount; ++i) {
+            float s = static_cast<float>(samples[i]) * totalGain;
+            if (s > 32767.0f)  s = 32767.0f;
+            if (s < -32768.0f) s = -32768.0f;
+            samples[i] = static_cast<int16_t>(s);
+        }
+    }
 }
+
 
 static bool find_device_id_by_name(const std::wstring& wantedW, ma_context* ctx, ma_device_id* outId, std::string* resolved)
 {
@@ -133,6 +156,12 @@ bool DualOutEngine::init(const std::wstring& devAName,
 
     g.sr = fmt.sr;
     g.ch = fmt.ch;
+
+    // НОВОЕ: сбрасываем громкость
+    g.gainA      = 1.0f;
+    g.gainB      = 1.0f;
+    g.masterGain = 1.0f;
+
 
     if (ma_context_init(nullptr, 0, nullptr, &g.ctx) != MA_SUCCESS) {
         std::cerr << "[DualOutEngine] context init failed\n";
@@ -342,6 +371,29 @@ void DualOutEngine::stop()
         ma_context_uninit(&g.ctx);
         std::cout<<"[DualOutEngine] stopped\n";
     }
+}
+
+// НОВОЕ: установка громкости в dB + master 0..1
+void DualOutEngine::setGainDb(float aDb, float bDb, float masterLinear) {
+    auto dbToLin = [](float db) -> float {
+        return std::pow(10.0f, db / 20.0f);
+    };
+
+    g.gainA = dbToLin(aDb);
+    g.gainB = dbToLin(bDb);
+    g.masterGain = std::clamp(masterLinear, 0.0f, 1.0f);
+}
+
+// НОВОЕ: пока задержку не используем — заглушка
+void DualOutEngine::setDelayMs(int, int) {
+    // можно реализовать позже, сейчас просто чтобы был body
+}
+
+// НОВОЕ: очистка очередей (для seek)
+void DualOutEngine::flush() {
+    if (!g.running.load()) return;
+    ma_pcm_rb_reset(&g.rbA);
+    ma_pcm_rb_reset(&g.rbB);
 }
 
 int DualOutEngine::queueMsA() const {

@@ -1,10 +1,18 @@
-# dualout-video/CMakeLists.txt
 file(GLOB SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
 
+# исключаем enum_hwnd.cpp из основного exe
+list(FILTER SRC_FILES EXCLUDE REGEX "enum_hwnd\\.cpp$")
+
+# основной сервис dualout-video
 add_executable(dualout-video ${SRC_FILES})
+
+# отдельный маленький exe для перечисления HWND
+add_executable(enum_hwnd
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/enum_hwnd.cpp"
+)
 
 target_include_directories(dualout-video PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

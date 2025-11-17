@@ -1,0 +1,52 @@
+# === CMake build dirs ===
+/build/
+/cmake-build-*/
+
+# Локальные конфиги Visual Studio
+.vs/
+*.user
+*.suo
+
+# Visual Studio DB / кеши
+*.VC.db
+*.VC.VC.opendb
+*.ipch
+
+# Стандартные директории билдов VS
+/Debug/
+/Release/
+/x64/
+/x86/
+/ARM/
+/ARM64/
+
+# Объекты и промежуточка
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.idb
+*.tlog
+*.log
+
+# Бинарники и библиотеки
+*.exe
+*.dll
+*.lib
+*.exp
+
+# Генерилки CMake (в корне или в build/)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+
+# IDE
+.idea/
+.vscode/
+
+# ОС-мусор
+.DS_Store
+Thumbs.db
+

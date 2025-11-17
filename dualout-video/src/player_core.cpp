@@ -217,21 +217,53 @@ bool PlayerCore::stop(){
 }
 
 bool PlayerCore::seek_ms(int64_t ms){
-    if(!opened_.load()) return false;
-    // ставим паузу, делаем seek, сбрасываем положение, отпускаем
+    if (!opened_.load()) return false;
+
+    // Запоминаем, играл ли плеер до seek
+    const bool wasPlaying = !paused_.load();
+
+    // Ставим на паузу и стопаем воркер
     paused_.store(true);
     cv_.notify_all();
 
+    // Переводим MF reader на новую позицию (в 100-нс)
+    const LONGLONG pts100ns = ms * 10000;
     PROPVARIANT pos{};
     pos.vt = VT_I8;
-    // MF позиция в 100-нс
-    pos.hVal.QuadPart = ms * 10000;
+    pos.hVal.QuadPart = pts100ns;
     HRESULT hr = reader_->SetCurrentPosition(GUID_NULL, pos);
     PropVariantClear(&pos);
-    last_pts_100ns_.store(ms*10000);
-        if (videoReady_) video_seek_100ns(ms*10000);
-    return SUCCEEDED(hr);
+    if (FAILED(hr)) {
+        return false;
+    }
+
+    last_pts_100ns_.store(pts100ns);
+
+    // Сбрасываем очереди dualout, чтобы не было хвостов старого аудио
+    if (bridge_) {
+        bridge_->eng.flush();
+    }
+
+    // Видео тоже перескакиваем
+    if (videoReady_) {
+        video_seek_100ns(pts100ns);
+    }
+
+    // Если до seek играло — продолжаем воспроизведение
+    if (wasPlaying) {
+        {
+            std::lock_guard<std::mutex> lk(mtx_);
+            paused_.store(false);
+        }
+        cv_.notify_all();
+        if (videoReady_) {
+            video_start();
+        }
+    }
+
+    return true;
 }
+
 bool PlayerCore::set_hwnd(HWND hwnd){
     hwnd_ = hwnd;
     // если уже открыт url_ — готовим видео-сессию
