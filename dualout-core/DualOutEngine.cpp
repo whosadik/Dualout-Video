@@ -270,12 +270,14 @@ g.rbCapacityFrames = capacityFrames;
     MA_CHECK(ma_device_start(&g.devA) == MA_SUCCESS);
     MA_CHECK(ma_device_start(&g.devB) == MA_SUCCESS);
 
+    // СТАЛО
     g.running = true;
-    std::cout << "[DualOutEngine] started A=[" << (aFound ? aResolved : "default")
-              << "] B=[" << (bFound ? bResolved : "default")
-              << "] @" << fmt.sr << "Hz ch=" << fmt.ch << "\n";
+    std::cerr << "[DualOutEngine] started A=[" << (aFound ? aResolved : "default")
+            << "] B=[" << (bFound ? bResolved : "default")
+            << "] @" << fmt.sr << "Hz ch=" << fmt.ch << "\n";
 
     return true;
+
 }
 
 bool DualOutEngine::write(const void* data, size_t frames, int64_t)
@@ -361,6 +363,7 @@ bool DualOutEngine::write(const void* data, size_t frames, int64_t)
 
 void DualOutEngine::drain(){ std::this_thread::sleep_for(std::chrono::milliseconds(50)); }
 
+// СТАЛО
 void DualOutEngine::stop()
 {
     if(g.running.exchange(false)){
@@ -369,9 +372,10 @@ void DualOutEngine::stop()
         ma_pcm_rb_uninit(&g.rbA);
         ma_pcm_rb_uninit(&g.rbB);
         ma_context_uninit(&g.ctx);
-        std::cout<<"[DualOutEngine] stopped\n";
+        std::cerr << "[DualOutEngine] stopped\n";
     }
 }
+
 
 // НОВОЕ: установка громкости в dB + master 0..1
 void DualOutEngine::setGainDb(float aDb, float bDb, float masterLinear) {

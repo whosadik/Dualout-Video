@@ -1,3 +1,6 @@
+# БЫЛО (как выше)
+
+# СТАЛО
 file(GLOB SRC_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
@@ -22,4 +25,15 @@ target_include_directories(dualout-video PRIVATE
 target_link_libraries(dualout-video PRIVATE
     dualout-core
     mf mfplat mfreadwrite mfuuid evr avrt ole32 uuid
+)
+
+# --- НОВОЕ: положить dualout-video.exe в общую bin-папку ---
+set(BA_BIN "C:/Users/Legion/brainAudio/third_party/bin")
+
+add_custom_command(TARGET dualout-video POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${BA_BIN}"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          $<TARGET_FILE:dualout-video>
+          "${BA_BIN}/dualout-video.exe"
+  VERBATIM
 )
