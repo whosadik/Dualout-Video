@@ -161,6 +161,17 @@ int main(){
                 std::cout << std::dec;
             }
         }
+        else if (cmd == "set_swap") {
+    bool v = false;
+    if (kv.count("v")) {
+        std::string s = kv["v"];
+        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+        v = (s == "1" || s == "true" || s == "yes");
+    }
+    bridge.eng.setSwapLR(v);
+    std::cout << R"({"ok":true})" << "\n";
+}
+
         else if(cmd=="status"){
             std::cout << player.status_json() << "\n";
         }

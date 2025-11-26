@@ -3,6 +3,7 @@
 #include <cstdint>
 
 struct DualOutFormat { uint32_t sr, ch, bps; };
+
 class DualOutEngine {
 public:
   bool init(const std::wstring& devA, const std::wstring& devB, DualOutFormat fmt, bool exclusive=false);
@@ -18,4 +19,8 @@ public:
   int queueMsA() const;
   int queueMsB() const;
   int driftMsAB() const;
+
+  // === NEW: reverse stereo channels ===
+  void setSwapLR(bool v);
 };
+

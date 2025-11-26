@@ -50,7 +50,7 @@ struct DualOutEngineImpl {
     uint64_t dropB{0};
     std::atomic_bool loggedCallbackA{false};
     std::atomic_bool loggedCallbackB{false};
-
+   std::atomic_bool swapLR { false };
     // НОВОЕ: коэффициенты громкости
     float gainA      = 1.0f;
     float gainB      = 1.0f;
@@ -115,6 +115,15 @@ static void dev_callback(ma_device* d, void* out, const void*, ma_uint32 frameCo
             samples[i] = static_cast<int16_t>(s);
         }
     }
+    // === NEW: swap L/R if enabled and stereo ===
+if (g.swapLR.load(std::memory_order_relaxed) && g.ch == 2) {
+    int16_t* samples = reinterpret_cast<int16_t*>(outBytes);
+    const size_t frames = needFrames;
+    for (size_t i = 0; i < frames; ++i) {
+        std::swap(samples[i*2 + 0], samples[i*2 + 1]); // L <-> R
+    }
+}
+
 }
 
 
@@ -398,6 +407,9 @@ void DualOutEngine::flush() {
     if (!g.running.load()) return;
     ma_pcm_rb_reset(&g.rbA);
     ma_pcm_rb_reset(&g.rbB);
+}
+void DualOutEngine::setSwapLR(bool v) {
+    g.swapLR.store(v, std::memory_order_relaxed);
 }
 
 int DualOutEngine::queueMsA() const {
