@@ -1,3 +1,4 @@
+#define NOMINMAX  
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 #include "DualOutEngine.h"
@@ -50,12 +51,20 @@ struct DualOutEngineImpl {
     uint64_t dropB{0};
     std::atomic_bool loggedCallbackA{false};
     std::atomic_bool loggedCallbackB{false};
-   std::atomic_bool swapLR { false };
+    std::atomic_bool swapLR{false};
+
     // НОВОЕ: коэффициенты громкости
     float gainA      = 1.0f;
     float gainB      = 1.0f;
     float masterGain = 1.0f;
+
+    // НОВОЕ: последние измеренные уровни (0..1)
+    std::atomic<float> lastRmsL{0.0f};
+    std::atomic<float> lastRmsR{0.0f};
+    std::atomic<float> lastPeakL{0.0f};
+    std::atomic<float> lastPeakR{0.0f};
 } g;
+
 
 
 static void dev_callback(ma_device* d, void* out, const void*, ma_uint32 frameCount)
@@ -102,6 +111,7 @@ static void dev_callback(ma_device* d, void* out, const void*, ma_uint32 frameCo
     }
 
     // НОВОЕ: применяем громкость (на выходе, отдельно для A и B)
+        // НОВОЕ: применяем громкость (на выходе, отдельно для A и B)
     float devGain   = isA ? g.gainA : g.gainB;
     float totalGain = devGain * g.masterGain;
 
@@ -115,16 +125,51 @@ static void dev_callback(ma_device* d, void* out, const void*, ma_uint32 frameCo
             samples[i] = static_cast<int16_t>(s);
         }
     }
+
     // === NEW: swap L/R if enabled and stereo ===
-if (g.swapLR.load(std::memory_order_relaxed) && g.ch == 2) {
-    int16_t* samples = reinterpret_cast<int16_t*>(outBytes);
-    const size_t frames = needFrames;
-    for (size_t i = 0; i < frames; ++i) {
-        std::swap(samples[i*2 + 0], samples[i*2 + 1]); // L <-> R
+    if (g.swapLR.load(std::memory_order_relaxed) && g.ch == 2) {
+        int16_t* samples = reinterpret_cast<int16_t*>(outBytes);
+        const size_t frames = needFrames;
+        for (size_t i = 0; i < frames; ++i) {
+            std::swap(samples[i*2 + 0], samples[i*2 + 1]); // L <-> R
+        }
+    }
+
+    // НОВОЕ: считаем RMS/peak по ФАКТИЧЕСКОМУ выходу (после gain+swap), только на A
+    if (isA && g.ch >= 1) {
+        int16_t* samples = reinterpret_cast<int16_t*>(outBytes);
+        const size_t frames = needFrames;
+
+        double sumSqL = 0.0;
+        double sumSqR = 0.0;
+        float peakL   = 0.0f;
+        float peakR   = 0.0f;
+
+        for (size_t i = 0; i < frames; ++i) {
+            int16_t sL = samples[i * g.ch + 0];
+            int16_t sR = (g.ch > 1 ? samples[i * g.ch + 1] : sL);
+
+            float fl = (float)sL / 32768.0f;
+            float fr = (float)sR / 32768.0f;
+
+            sumSqL += (double)fl * (double)fl;
+            sumSqR += (double)fr * (double)fr;
+
+            peakL = std::max(peakL, std::fabs(fl));
+            peakR = std::max(peakR, std::fabs(fr));
+        }
+
+        const double n = (double)frames;
+        float rmsL = n > 0.0 ? (float)std::sqrt(sumSqL / n) : 0.0f;
+        float rmsR = n > 0.0 ? (float)std::sqrt(sumSqR / n) : 0.0f;
+
+        g.lastRmsL.store(rmsL, std::memory_order_relaxed);
+        g.lastRmsR.store(rmsR, std::memory_order_relaxed);
+        g.lastPeakL.store(peakL, std::memory_order_relaxed);
+        g.lastPeakR.store(peakR, std::memory_order_relaxed);
     }
 }
 
-}
 
 
 static bool find_device_id_by_name(const std::wstring& wantedW, ma_context* ctx, ma_device_id* outId, std::string* resolved)
@@ -251,6 +296,12 @@ g.rbCapacityFrames = capacityFrames;
     g.lastStats         = std::chrono::steady_clock::time_point{};
     g.loggedCallbackA.store(false);
     g.loggedCallbackB.store(false);
+
+    // НОВОЕ: сбрасываем уровни
+    g.lastRmsL.store(0.0f, std::memory_order_relaxed);
+    g.lastRmsR.store(0.0f, std::memory_order_relaxed);
+    g.lastPeakL.store(0.0f, std::memory_order_relaxed);
+    g.lastPeakR.store(0.0f, std::memory_order_relaxed);
 
     // --- Праймим буферы нулями ---
    {
@@ -432,4 +483,18 @@ int DualOutEngine::driftMsAB() const {
     int qb = queueMsB();
     return qa - qb;
 }
+
+// НОВОЕ: отдать последние уровни (0..1), если движок запущен
+bool DualOutEngine::getLevels(float& rmsL, float& rmsR, float& peakL, float& peakR) const {
+    if (!g.running.load(std::memory_order_relaxed)) {
+        rmsL = rmsR = peakL = peakR = 0.0f;
+        return false;
+    }
+    rmsL  = g.lastRmsL.load(std::memory_order_relaxed);
+    rmsR  = g.lastRmsR.load(std::memory_order_relaxed);
+    peakL = g.lastPeakL.load(std::memory_order_relaxed);
+    peakR = g.lastPeakR.load(std::memory_order_relaxed);
+    return true;
+}
+
 

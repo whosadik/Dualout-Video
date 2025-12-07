@@ -161,16 +161,40 @@ int main(){
                 std::cout << std::dec;
             }
         }
-        else if (cmd == "set_swap") {
-    bool v = false;
-    if (kv.count("v")) {
-        std::string s = kv["v"];
-        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-        v = (s == "1" || s == "true" || s == "yes");
-    }
-    bridge.eng.setSwapLR(v);
-    std::cout << R"({"ok":true})" << "\n";
-}
+               else if (cmd == "set_swap") {
+            bool v = false;
+            if (kv.count("v")) {
+                std::string s = kv["v"];
+                std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+                v = (s == "1" || s == "true" || s == "yes");
+            }
+            bridge.eng.setSwapLR(v);
+            std::cout << R"({"ok":true})" << "\n";
+        }
+
+        // НОВОЕ: запрос уровней сигнала (RMS/PEAK)
+        else if (cmd == "levels") {
+            float rmsL = 0.0f;
+            float rmsR = 0.0f;
+            float peakL = 0.0f;
+            float peakR = 0.0f;
+
+            // ЭТО мы реализуем в следующем файле (движок):
+            // bool DualOutEngine::getLevels(float& rmsL, float& rmsR, float& peakL, float& peakR);
+            bool ok = bridge.eng.getLevels(rmsL, rmsR, peakL, peakR);
+
+            if (!ok) {
+                std::cout << R"({"ok":false,"err":"no_levels"})" << "\n";
+            } else {
+                std::cout
+                    << "{\"ok\":true"
+                    << ",\"rmsL\":"  << rmsL
+                    << ",\"rmsR\":"  << rmsR
+                    << ",\"peakL\":" << peakL
+                    << ",\"peakR\":" << peakR
+                    << "}\n";
+            }
+        }
 
         else if(cmd=="status"){
             std::cout << player.status_json() << "\n";

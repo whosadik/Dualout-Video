@@ -7,3 +7,9 @@ cmake --build build --config Release
 cmd=set_devices a="Realtek(R) Audio" b="AirPods Pro (Adik)" ch=2 bps=16
 cmd=open url="C:\Adik\4_5797400500282327604.mp4"
 cmd=play
+
+lib/media/dualout_video_service.dart — добавить метод типа Future<AudioLevels> getLevels().
+
+lib/app/providers.dart (или отдельный провайдер) — сделать стрим уровней с периодическим опросом levels.
+
+VideoPlayerPage — подписаться на этот стрим и подмешивать audioBoost в наши визуальные эффекты.

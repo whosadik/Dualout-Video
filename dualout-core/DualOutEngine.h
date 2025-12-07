@@ -20,7 +20,9 @@ public:
   int queueMsB() const;
   int driftMsAB() const;
 
+  // НОВОЕ: получить последние уровни (нормированные 0..1)
+  bool getLevels(float& rmsL, float& rmsR, float& peakL, float& peakR) const;
+
   // === NEW: reverse stereo channels ===
   void setSwapLR(bool v);
 };
-
